@@ -1,0 +1,276 @@
+---
+title: "Plot Luxwolda Data"
+author: "Keith Baggerly"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Plot Luxwolda Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::knitr}
+---
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+
+# 1 Executive Summary
+
+## 1.1 Introduction
+
+We want to graphically summarize the 25(OH)D results from Table 1 of Luxwolda et al, 2012, which lists mean serum levels seen in various cohorts of native tribes in East Africa. We also want to contrast these serum levels with those of pregnant women seen at MUSC (before supplementation).
+
+## 1.2 Data and Methods
+
+We saved partial data from Table 1 of Luxwolda et al (giving mean levels per cohort) in luxwolda.csv, which we load here. This file gives results for 8 cohorts, reporting
+
+* Tribe of Origin (Hadzabe, Maasai, Serengema, Same)
+* Group (Male, Female, Pregnant)
+* Serum Level Summaries (mean, sd, min, max)
+* Number of participants
+
+The data from MUSC (currently unpublished)
+
+## 1.3 Results
+
+We export figures showing 
+
+* the Luxwolda et al serum levels (luxwolda.png)
+* the Luxwolda et al data with MUSC data superimposed (luxwoldaMusc.png)
+
+## 1.4 Conclusions
+
+Serum levels of pregnant women in South Carolina are far lower than levels seen where the human race evolved. Levels are particularly low for women with darker skin, pointing to regions of health disparity.
+
+# 2 Load Data
+
+First, we load the data from luxwolda.csv.
+
+```{r loadLuxData}
+
+luxwolda <- 
+  read.csv(system.file('extdata','luxwolda.csv',package='VitDpackage'),
+           header=TRUE, stringsAsFactors = FALSE)
+luxwolda
+
+```
+
+Then we load the summary data from MUSC (currently unpublished).
+
+```{r loadMuscData}
+
+musc <- 
+  read.csv(system.file('extdata','musc.csv',package='VitDpackage'),
+           header=TRUE, stringsAsFactors = FALSE,
+           row.names = 1)
+
+## Convert from ng/mL to nmol/L
+
+musc[,"SerumLevel"] <- 2.5 * musc[,"SerumLevel"]
+musc[,"SerumSD"] <- 2.5 * musc[,"SerumSD"]
+
+```
+
+# 3 Plot Data
+
+## 3.1 Just Luxwolda Data
+
+To summarize the Luxwolda data, we show serum level on the x-axis and use truncated (to +/-1sd) and scaled normal distributions to show the levels in each cohort. The distributions are scaled (a) to have the reported means and standard deviations, and (b) to have areas proportional to the numbers of individuals involved. Colors denote groups (blue=male, pink=female, gold=pregnant). First, we specify parameters (e.g., the color settings).
+
+```{r setParams}
+
+luxColors <- rep("blue", nrow(luxwolda))
+luxColors[luxwolda[,"Group"]=="Female"] <- "pink"
+luxColors[luxwolda[,"Group"]=="Pregnant"] <- "gold"
+
+normDensX <- seq(-1,1,0.1)
+normDensY <- dnorm(normDensX)
+
+maxHeight <- dnorm(0) * luxwolda[,"n"] / luxwolda[,"SerumSD"]
+
+```
+
+Then we plot the data.
+
+```{r plotData, fig.width = 6, fig.height = 6}
+
+plot(c(0,200), c(-0.2,7.4), type="n",
+     yaxt="n", ylab="", xlab="25(OH)D Level in nmol/L",
+     main="Serum Levels Seen in East African Populations")
+for(i1 in 1:nrow(luxwolda)){
+  polygon(
+    c(normDensX[1], normDensX, normDensX[length(normDensX)]) * 
+        luxwolda[i1,"SerumSD"] + luxwolda[i1,"SerumLevel"],
+        (c(0, normDensY, 0) * luxwolda[i1,"n"] / luxwolda[i1,"SerumSD"]) + 
+      (i1-1), col=luxColors[i1], border="black")
+}
+
+abline(v=c(50,75,100), col=c("red","blue","green"))
+abline(h=4.7)
+
+mtext(text=paste0(luxwolda[,"Origin"]," "), 
+      side=2, at=0:7, las=2, cex=0.7)
+mtext(text=paste0(" ",luxwolda[,"n"]), 
+      side=4, at=0:7, las=2)
+mtext(text=c("IOM","ES","GRH"), side=3, at=c(50,75,100))
+mtext(text="Tribe ", side=2, at=8, las=2, font=2)
+mtext(text=" N", side=4, at=8, las=2, font=2)
+
+legend(c(160,200), c(0,2), legend=c("Male", "Female", "Pregnant"),
+       pch=15, col=c("blue", "pink", "gold"))
+
+```
+
+We also export the image as "luxwolda.png"
+
+```{r plotDataPng,eval=FALSE,echo=FALSE}
+
+png(file="../../Images/luxwolda.png")
+
+plot(c(0,200), c(-0.2,7.4), type="n",
+     yaxt="n", ylab="", xlab="25(OH)D Level in nmol/L",
+     main="Serum Levels Seen in East African Populations")
+for(i1 in 1:nrow(luxwolda)){
+  polygon(
+    c(normDensX[1], normDensX, normDensX[length(normDensX)]) * 
+        luxwolda[i1,"SerumSD"] + luxwolda[i1,"SerumLevel"],
+        (c(0, normDensY, 0) * luxwolda[i1,"n"] / luxwolda[i1,"SerumSD"]) + 
+      (i1-1), col=luxColors[i1], border="black")
+}
+
+abline(v=c(50,75,100), col=c("red","blue","green"))
+abline(h=4.7)
+
+mtext(text=paste0(luxwolda[,"Origin"]," "), 
+      side=2, at=0:7, las=2, cex=0.7)
+mtext(text=paste0(" ",luxwolda[,"n"]), 
+      side=4, at=0:7, las=2)
+mtext(text=c("IOM","ES","GRH"), side=3, at=c(50,75,100))
+mtext(text="Tribe ", side=2, at=8, las=2, font=2)
+mtext(text=" N", side=4, at=8, las=2, font=2)
+
+legend(c(160,200), c(0,2), legend=c("Male", "Female", "Pregnant"),
+       pch=15, col=c("blue", "pink", "gold"))
+
+dev.off()
+
+```
+
+## 3.2 Adding MUSC Data
+
+Now we want to superimpose the MUSC data. First, we set some parameter values (e.g., colors and the like).
+
+```{r setMuscParams}
+
+muscColors <- rep("", nrow(musc)) 
+names(muscColors) <- rownames(musc)
+muscColors["Asian/PI"] <- "red"
+muscColors["Black"] <- "black"
+muscColors["Hispanic"] <- "khaki"
+muscColors["Other/Multiple/Unk"] <- "grey"
+muscColors["White"] <- "white"
+
+maxHeight <- dnorm(0) * musc[,"n"] / musc[,"SerumSD"]
+muscSF <- 7.4 / max(maxHeight)
+
+```
+
+Now we plot the data.
+
+```{r muscData, fig.width = 6, fig.height = 6}
+
+plot(c(0,200), c(-0.2,7.4), type="n",
+     yaxt="n", ylab="", xlab="25(OH)D Level in nmol/L",
+     main=paste0("MUSC Pregnant Levels Today, vs\n",
+                 "Serum Levels Seen in East African Populations"))
+for(i1 in 1:nrow(luxwolda)){
+  polygon(
+    c(normDensX[1], normDensX, normDensX[length(normDensX)]) * 
+        luxwolda[i1,"SerumSD"] + luxwolda[i1,"SerumLevel"],
+        (c(0, normDensY, 0) * luxwolda[i1,"n"] / luxwolda[i1,"SerumSD"]) + 
+      (i1-1), col=luxColors[i1], border="black")
+}
+
+abline(v=c(50,75,100), col=c("red","blue","green"))
+abline(h=4.7)
+
+mtext(text=paste0(luxwolda[,"Origin"]," "), 
+      side=2, at=0:7, las=2, cex=0.7)
+mtext(text=paste0(" ",luxwolda[,"n"]), 
+      side=4, at=0:7, las=2)
+mtext(text=c("IOM","ES","GRH"), side=3, at=c(50,75,100))
+mtext(text="Tribe ", side=2, at=8, las=2, font=2)
+mtext(text=" N", side=4, at=8, las=2, font=2)
+
+for(i1 in rev(order(maxHeight))){
+  polygon(
+    c(normDensX[1], normDensX, normDensX[length(normDensX)]) * 
+      musc[i1,"SerumSD"] + musc[i1,"SerumLevel"],
+        muscSF*(c(0, normDensY, 0) * musc[i1,"n"] / 
+                  musc[i1,"SerumSD"]), 
+    col=muscColors[i1], border="black")
+}
+
+## Legend names are in peak height order, shortest to tallest
+legend(c(150,200), c(0,3), 
+       legend=c("Asian/PI, 14", "Unknown, 67", 
+                "Hispanic, 72", "Black, 304", "White, 488"),
+       pch=22, 
+       pt.bg=c("red", "gray", "khaki", "black", "white"))
+legend(c(150,200),c(3,5.1),legend="")
+text(175, 4, "MUSC\nPregnancies\nToday", col="red", cex=1.2, font=2)
+
+```
+
+Now we export the figure to "luxwoldaMusc.png".
+
+```{r exportMusc,eval=FALSE,echo=FALSE}
+
+png(file="../../Images/luxwoldaMusc.png")
+
+plot(c(0,200), c(-0.2,7.4), type="n",
+     yaxt="n", ylab="", xlab="25(OH)D Level in nmol/L",
+     main=paste0("MUSC Pregnant Levels Today, vs\n",
+                 "Serum Levels Seen in East African Populations"))
+for(i1 in 1:nrow(luxwolda)){
+  polygon(
+    c(normDensX[1], normDensX, normDensX[length(normDensX)]) * 
+        luxwolda[i1,"SerumSD"] + luxwolda[i1,"SerumLevel"],
+        (c(0, normDensY, 0) * luxwolda[i1,"n"] / luxwolda[i1,"SerumSD"]) + 
+      (i1-1), col=luxColors[i1], border="black")
+}
+
+abline(v=c(50,75,100), col=c("red","blue","green"))
+abline(h=4.7)
+
+mtext(text=paste0(luxwolda[,"Origin"]," "), 
+      side=2, at=0:7, las=2, cex=0.7)
+mtext(text=paste0(" ",luxwolda[,"n"]), 
+      side=4, at=0:7, las=2)
+mtext(text=c("IOM","ES","GRH"), side=3, at=c(50,75,100))
+mtext(text="Tribe ", side=2, at=8, las=2, font=2)
+mtext(text=" N", side=4, at=8, las=2, font=2)
+
+for(i1 in rev(order(maxHeight))){
+  polygon(
+    c(normDensX[1], normDensX, normDensX[length(normDensX)]) * 
+      musc[i1,"SerumSD"] + musc[i1,"SerumLevel"],
+        muscSF*(c(0, normDensY, 0) * musc[i1,"n"] / 
+                  musc[i1,"SerumSD"]), 
+    col=muscColors[i1], border="black")
+}
+
+## Legend names are in peak height order, shortest to tallest
+legend(c(150,200), c(0,3), 
+       legend=c("Asian/PI, 14", "Unknown, 67", 
+                "Hispanic, 72", "Black, 304", "White, 488"),
+       pch=22, 
+       pt.bg=c("red", "gray", "khaki", "black", "white"))
+
+legend(c(150,200),c(3,5.1),legend="")
+text(175, 4, "MUSC\nPregnancies\nToday", col="red", cex=1.2, font=2)
+
+dev.off()
+
+```
+

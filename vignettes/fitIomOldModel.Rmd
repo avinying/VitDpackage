@@ -1,0 +1,367 @@
+---
+title: "Reconstructing the IOM Fits; Older Cohorts"
+author: "Keith Baggerly"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reconstructing the IOM Fits; Older Cohorts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::knitr}
+---
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# 1 Executive Summary
+
+## 1.1 Introduction
+
+In 2010, the Institute of Medicine (IOM) released [a report][iom2011]
+ updating the Dietary Reference Intake (DRI) values for vitamin D and calcium. In an earlier report, we described our own independent assembly of the raw values. Here, we describe our attempts to
+ 
+* fit models to the data relating total vitamin D intake (TI, diet + supplement) to achieved serum level (SL), and
+* to identify a RDA supplement value for most of the population to reach a serum level adequate for benefit.
+
+Here, we fit a model just to the data derived from studies involving older participants.
+
+## 1.2 Data and Methods
+
+We use a table of data values, iomReview.csv, assembled from both the IOM report's Table 5-4 and our own review of the papers cited.
+
+Following the IOM report (p.383, 388), we fit linear mixed effect (LME) models of the form
+
+SL = b*(log(TI) + random effect by study) + noise
+
+using the mean values reported in the IOM's Table 5-4.
+
+We use the R package lme4 to fit models for only studies with older participants.
+
+We plot the data using color and symbol to indicate study and age group respectively, and superimpose confidence intervals.
+
+We compare the fit we obtain to the model fit reported by the IOM panel, which is SL = 10.9 log(TI), with a 95\% CI for the coefficient of (7.7, 14.2) (p.383). This fit is shown in the IOM report's Figure 5-3.
+
+## 1.3 Results
+
+Our central point estimate (10.2) isn't close to the IOM value of 10.9. We haven't been able to identify the source of the discrepancy, but there are definitely some oddities in the data -- the values plotted in the IOM's Figures 5.3 and 5.4 (which we used for our data table) omit two data points from Cashman et al 2009 for no reason we can discern, and one of the values for Van Der Klis et al is an average participant age as opposed to an average serum level. Refitting the data after adding the missing means and adjusting the mistaken one gives a revised estimate of 9.9, even farther from the value the IOM reports. We cannot match the widths of the IOM's interval estimate (roughly 3.2 units on either side) using any simple multiple of the standard deviation of the random effect (which is 2.8 here). Thus, their interval is both off center and too narrow.
+
+## 1.4 Conclusions
+
+We can't match the IOM's model estimates well enough to feel confident we're doing the same things they did, whereas we could match them (with some effort) for the young and adult data. The difference in interval widths is particularly troubling - either they're working with different values than I am (though I'm using the values they reported and plotted), or they're using some fitting routine I don't recognize, or their intervals are simply wrong.
+
+Even so, the values we can obtain rest _strongly_ on assumptions of normality, only account for one type of variation present, and underestimate the number of standard deviations required given the small number of studies involved, so the intervals the IOM reports (which are much narrower than these) are almost certainly too narrow here.
+
+We cannot see how the same modeling approach could have been applied to the young, adult, and old datasets and given the results reported.
+
+# 2 Load Data and Libraries
+
+We begin by loading the data and libraries we need for this report.
+
+```{r loadData}
+
+library(lme4)
+
+vitD <- read.csv(system.file('extdata','iomReview.csv',package='VitDpackage'))
+vitD <- vitD[!is.na(vitD[,"N"]),]
+
+```
+
+
+# 3 Plot All Data
+
+## 3.1 As Presented in IOM Figure 5.4
+
+Here we plot our approximation of the data as presented in Figure 5.4 of the IOM report.
+
+```{r plotDataAsPresented, fig.width = 6, fig.height = 6}
+
+plot(vitD[,"IOMIntake"], 
+     vitD[,"IOMLevel"], 
+     pch=vitD[,"PlotSymbol"], 
+     bg=as.character(vitD[,"Color"]), cex=2,
+     xlab="Vit D Intake in IU",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Data from Studies Used for\nIOM Vit D Review, 2010",
+     ylim=c(0,110), xlim=c(0,2500))
+
+```
+
+## 3.2 Using Log TI Axis
+
+Next, we plot the data after log-transforming the x-values, as was done for modeling purposes.
+
+```{r plotDataWLog, fig.width = 6, fig.height = 6}
+
+plot(log(vitD[,"TotalIntake"]), 
+     vitD[,"AchievedLevel"], 
+     pch=vitD[,"PlotSymbol"], 
+     bg=as.character(vitD[,"Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Studies Used by IOM Vit D Review, 2010",
+     xlim=c(0,8), ylim=c(0,110))
+
+```
+
+# 4 Focus on Older Data
+
+## 4.1 The Studies Involving Older Participants
+
+Here, we fit models for the studies involving only older participants. Specifically, we use data from 4 studies:
+
+```{r idOlderStudies}
+
+as.character(unique(vitD[vitD[,"Age.Group"]=="Old","Study"]))
+
+```
+
+## 4.2 Plotting the Older Data
+
+```{r plotOlder, fig.width = 6, fig.height = 6}
+
+plot(vitD[vitD[,"Age.Group"]=="Old","IOMIntake"], 
+     vitD[vitD[,"Age.Group"]=="Old","IOMLevel"], 
+     pch=vitD[vitD[,"Age.Group"]=="Old","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Old","Color"]), cex=2,
+     xlab="Vit D Intake in IU",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="IOM Review Older Studies",
+     ylim=c(0,110), xlim=c(0,2500))
+
+legend(c(1875,2500),c(0,40),
+       legend=c("Cashman", 
+                "Larsen",
+                "VanDerKlis",
+                "Viljakainen"),
+       pch=21, pt.bg=c("purple", "red", "brown", "khaki"))
+
+```
+
+## 4.3 Plotting Older Data, Logged
+
+Next, we plot the data after log-transforming the x-values, as was done for modeling purposes.
+
+```{r plotOldWLog, fig.width = 6, fig.height = 6}
+
+plot(log(vitD[vitD[,"Age.Group"]=="Old","IOMIntake"]), 
+     vitD[vitD[,"Age.Group"]=="Old","IOMLevel"], 
+     pch=vitD[vitD[,"Age.Group"]=="Old","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Old","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="IOM Review Older Studies, Log(TI)",
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,110),
+       legend=c("Cashman", 
+                "Larsen",
+                "VanDerKlis",
+                "Viljakainen"),
+       pch=21, pt.bg=c("purple", "red", "brown", "khaki"))
+
+```
+
+
+# 5 Fitting LME Models
+
+Now we fit a linear mixed effect model to the data at hand.
+
+```{r fitOld}
+
+vitDOldIom <- 
+  lmer(IOMLevel ~ -1 + log(IOMIntake) + 
+         (-1 + log(IOMIntake)|Study),
+       data=vitD[vitD[,"Age.Group"]=="Old",])
+
+summary(vitDOldIom)
+
+```
+
+The main fixed effect model estimate, `r round(fixef(vitDOldIom),3)`, isn't close to the IOM's reported value of 10.9, which is disturbing. I'm not sure if this is due to data roundoffs, code implementation differences, or something more severe. 
+
+There are definitely some inconsistencies with the data here. The study by Cashman et al, 2009 (values reported on p.375 of the IOM report) should have given rise to 4 means. We've only plotted 2, since the other 2, at (188, 41.6) and (364, 53.2), are missing from the IOM report's Figures 5.3 and 5.4, suggesting they weren't used for some reason. Similarly, the values supplied for Van Der Klis et al, 1996 (p.376) are questionable -- the first value, (64, 61.2), is not actually using a serum level. Examination of Table 1 of Van Der Klis et al shows the serum level should have been 58.5; 61.2 is the average age of the study participants. The second and third values, while nominally from two distict dosage levels, only have one (pooled) serum level reported overall, as the results were said to be not different. We tried adding in the two other Cashman et al, 2009 values and correcting the first Van Der Klis et al 1996 value to see if the estimates changed appreciably. 
+
+```{r fitOurData}
+
+vitDOld <- 
+  lmer(AchievedLevel ~ -1 + log(TotalIntake) + 
+         (-1 + log(TotalIntake)|Study),
+       data=vitD[vitD[,"Age.Group"]=="Old",])
+
+summary(vitDOld)
+
+```
+
+While the estimates do change a bit, they move us farther away from the values the IOM is reporting, as the central value is now estimated as 9.9.
+
+For now, we'll simply proceed with our initial fit. 
+
+We'd also like to assemble a prediction interval that will (we think) have a 95\% chance of covering a new observation. This is actually a bit tricky, because there are several sources of variance involved:
+
+1. variation associated with our fit of the mean curve
+2. variation associated with a new study relative to the mean curve
+3. variation associated with a new observation from the new study
+
+If we were just to focus on the first type of variation, then (assuming our estimates are approximately normally distributed about the true value), then we could extend our interval out some number of standard deviations around the estimated value. If we assume we've got a normal distribution, going 2 sd out to either side will be pretty close. Here, that would give 10.196 $\pm$ 2*1.431, or (8.246, 11.46). This is too narrow for a few reasons. First, this interval will get increasingly narrow as the number of studies increases, tending eventually to zero width. This can never be true for a new observation, but it can be true for our knowledge about the center of a distribution. Second, the number of studies involved here (4) is pretty darn small, so assuming "2" standard deviations is enough is probably too generous. While the 97.5th percentile for a standard normal is `r qnorm(0.975)`, the corresponding percentile for a $t_3$ distribution is `r qt(0.975, 3)`; the t-distribution is still much wider. 
+
+If we were to focus just on the second type of variation, then (assuming our point estimate of the center is known without error and we're dealing with a normal distribution), this would give 10.196 +/- 2 x 2.812, or (4.572, 15.820). This interval is a good deal wider than the one reported by the IOM (7.7, 14.2), so we're guessing this isn't what was done. Further, examination of the width of the reported interval (about 3.2 units on either side of the point estimate) and the size of the random effect standard deviation (here about 2.8) doesn't show how an integer multiple could fit. Thus, their interval appears to be biased high and to be about 1.15 sd on a side. In addition, This interval is still too narrow (a) for the reasons cited above, and (b) because it ignores the uncertainty in our central estimate. 
+
+The third type of variation is harder, in that it also implicitly presumes we know the x-location at which it is to be applied. We will set this aside for now. 
+
+# 6 Plotting Model Fits
+
+## 6.1 Adding Study Estimates
+
+Now we add our model fits to the plot in stages. First, we add lines for each study estimate. These can be readily extracted from the lmer model:
+
+```{r getStudyFits}
+
+coef(vitDOldIom)$Study
+
+```
+
+Now we add these lines to the plot, going through the origin per specification.
+
+```{r plotOldWLogWStudy, fig.width = 6, fig.height = 6}
+
+plot(log(vitD[vitD[,"Age.Group"]=="Old","IOMIntake"]),
+     vitD[vitD[,"Age.Group"]=="Old","IOMLevel"], 
+     pch=vitD[vitD[,"Age.Group"]=="Old","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Old","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main=paste0("Older Model Fits, by Study"),
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,110),
+       legend=c("Cashman", 
+                "Larsen",
+                "VanDerKlis",
+                "Viljakainen"),
+       pch=21, pt.bg=c("purple", "red", "brown", "khaki"))
+
+abline(0, coef(vitDOldIom)$Study["Cashman2009",], col="purple")
+abline(0, coef(vitDOldIom)$Study["Larsen2004",], col="red")
+abline(0, coef(vitDOldIom)$Study["VanDerKlis1996",], col="brown")
+abline(0, coef(vitDOldIom)$Study["Viljakainen2006b",], col="khaki")
+
+```
+
+## 6.2 Adding Our Model Estimates
+
+Next, we add the main model fit +/-2 times the standard deviation of the study random effect.
+
+```{r plotAdultWLogWStudyWSE, fig.width = 6, fig.height = 6}
+
+plot(log(vitD[vitD[,"Age.Group"]=="Old","IOMIntake"]), 
+     vitD[vitD[,"Age.Group"]=="Old","IOMLevel"], 
+     pch=vitD[vitD[,"Age.Group"]=="Old","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Old","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main=paste0("Older Model Fits, by Study\n",
+                 "With Model +/- 2*SD(RE)"),
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,110),
+       legend=c("Cashman", 
+                "Larsen",
+                "VanDerKlis",
+                "Viljakainen"),
+       pch=21, pt.bg=c("purple", "red", "brown", "khaki"))
+
+abline(0, coef(vitDOldIom)$Study["Cashman2009",], col="purple")
+abline(0, coef(vitDOldIom)$Study["Larsen2004",], col="red")
+abline(0, coef(vitDOldIom)$Study["VanDerKlis1996",], col="brown")
+abline(0, coef(vitDOldIom)$Study["Viljakainen2006b",], col="khaki")
+
+pointEst <- 
+  summary(vitDOldIom)$coefficients["log(IOMIntake)","Estimate"]
+sdRE <- sqrt(as.numeric(VarCorr(vitDOldIom)))
+abline(0, pointEst, lwd=2)
+abline(0, pointEst - 2*sdRE, lty="dashed", lwd=2)
+abline(0, pointEst + 2*sdRE, lty="dashed", lwd=2)
+
+```
+
+## 6.3 Adding the IOM Model Fits
+
+Now we superimpose the reported IOM estimates.
+
+```{r plotAdultWLogWStudyWSE2, fig.width = 6, fig.height = 6}
+
+plot(log(vitD[vitD[,"Age.Group"]=="Old","IOMIntake"]), 
+     vitD[vitD[,"Age.Group"]=="Old","IOMLevel"], 
+     pch=vitD[vitD[,"Age.Group"]=="Old","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Old","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main=paste0("Older Model Fits, by Study\n",
+                 "With Model +/- 2*SD(RE), and IOM Fits (green)"),
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,110),
+       legend=c("Cashman", 
+                "Larsen",
+                "VanDerKlis",
+                "Viljakainen"),
+       pch=21, pt.bg=c("purple", "red", "brown", "khaki"))
+
+abline(0, coef(vitDOldIom)$Study["Cashman2009",], col="purple")
+abline(0, coef(vitDOldIom)$Study["Larsen2004",], col="red")
+abline(0, coef(vitDOldIom)$Study["VanDerKlis1996",], col="brown")
+abline(0, coef(vitDOldIom)$Study["Viljakainen2006b",], col="khaki")
+
+pointEst <- 
+  summary(vitDOldIom)$coefficients["log(IOMIntake)","Estimate"]
+sdRE <- sqrt(as.numeric(VarCorr(vitDOldIom)))
+abline(0, pointEst, lwd=2)
+abline(0, pointEst - 2*sdRE, lty="dashed", lwd=2)
+abline(0, pointEst + 2*sdRE, lty="dashed", lwd=2)
+
+abline(0, 14.2, lwd=6, lty="dotted", col="green")
+abline(0, 10.9, lwd=6, lty="dotted", col="green")
+abline(0, 7.7, lwd=6, lty="dotted", col="green")
+
+```
+
+## 6.4 Undo Log
+
+Finally, we undo the log transform to match the IOM's method of display.
+
+```{r plotOldWModel, fig.width = 6, fig.height = 6}
+
+plot(vitD[vitD[,"Age.Group"]=="Old","IOMIntake"], 
+     vitD[vitD[,"Age.Group"]=="Old","IOMLevel"], 
+     pch=vitD[vitD[,"Age.Group"]=="Old","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Old","Color"]), cex=2,
+     xlab="Vit D Intake in IU",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Older Model Fits",
+     ylim=c(0,110), xlim=c(0,2500))
+
+ciX <- seq(from=1, to=2400, by=1)
+
+lines(ciX, pointEst*log(ciX), lwd=2)
+lines(ciX, (pointEst - 2*sdRE)*log(ciX), lty="dashed", lwd=2)
+lines(ciX, (pointEst + 2*sdRE)*log(ciX), lty="dashed", lwd=2)
+
+lines(ciX, 10.9*log(ciX), lwd=6, lty="dotted", col="green")
+lines(ciX, 7.7*log(ciX), lwd=6, lty="dotted", col="green")
+lines(ciX, 14.2*log(ciX), lwd=6, lty="dotted", col="green")
+
+legend(c(1875,2500),c(0,40),
+       legend=c("Cashman", 
+                "Larsen",
+                "VanDerKlis",
+                "Viljakainen"),
+       pch=21, pt.bg=c("purple", "red", "brown", "khaki"))
+
+
+```
+
+# References
+
+[iom2011]: http://www.nationalacademies.org/hmd/Reports/2010/Dietary-Reference-Intakes-for-Calcium-and-Vitamin-D.aspx "IOM, 2011, Dietary Reference Intakes for Calcium and Vitamin D, National Academies Press"
+
+[IOM, 2011, Dietary Reference Intakes for Calcium and Vitamin D, National Academies Press](http://www.nationalacademies.org/hmd/Reports/2010/Dietary-Reference-Intakes-for-Calcium-and-Vitamin-D.aspx)

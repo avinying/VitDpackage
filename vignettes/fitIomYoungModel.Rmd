@@ -1,0 +1,390 @@
+---
+title: "Reconstructing the IOM Fits; Young Cohorts"
+author: "Keith Baggerly"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reconstructing the IOM Fits; Young Cohorts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::knitr}
+---
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+
+# 1 Executive Summary
+
+## 1.1 Introduction
+
+In 2010, the Institute of Medicine (IOM) released [a report][iom2011]
+ updating the Dietary Reference Intake (DRI) values for vitamin D and calcium. In an earlier report, we described our own independent assembly of the raw values. Here, we describe our attempts to
+ 
+* fit models to the data relating total vitamin D intake (TI, diet + supplement) to achieved serum level (SL), and
+* to identify a RDA supplement value for most of the population to reach a serum level adequate for benefit.
+
+Here, we fit a model just to the data derived from studies involving young participants.
+
+## 1.2 Data and Methods
+
+We use a table of data values, iomReview.csv, assembled from both the IOM report's Table 5-4 and our own review of the papers cited.
+
+Following the IOM report (p.383, 388), we fit linear mixed effect (LME) models of the form
+
+SL = b*(log(TI) + random effect by study) + noise
+
+using the mean values reported in the IOM's Table 5-4.
+
+We use the R package lme4 to fit models for only studies with young participants.
+
+We plot the data using color and symbol to indicate study and age group respectively, and superimpose confidence intervals.
+
+We compare the fit we obtain to the model fit reported by the IOM panel, which is SL = 8.6 log(TI), with a 95\% CI for the coefficient ranging from 6.0 to 11.3 (p.383). This fit is shown in the IOM report's Figure 5-3.
+
+## 1.3 Results
+
+Our central point estimate (8.56) is close to the IOM value of 8.6. Similarly, we can get interval estimates very close to those reported by adding and subtracting 2 times the estimated standard deviation of the study random effect; (6.065, 11.057) vs. (6.0, 11.3). When plotted, these estimates largely coincide.
+
+## 1.4 Conclusions
+
+We match the IOM's model estimates well enough to feel confident we're doing the same things they did; the scales of uncertainty remaining could well be due to roundoff or differences in implementation of the LME fits.  
+
+That said, while we can match the values reported, these values rest _strongly_ on assumptions of normality, only account for one type of variation present, and underestimate the number of standard deviations required given the small number of studies involved, so these intervals are almost certainly too narrow.
+
+# 2 Load Data and Libraries
+
+We begin by loading the data and libraries we need for this report.
+
+```{r loadData}
+
+library(lme4)
+
+vitD <- read.csv(system.file('extdata','iomReview.csv',package='VitDpackage'))
+vitD <- vitD[!is.na(vitD[,"N"]),]
+
+```
+
+
+# 3 Plot All Data
+
+## 3.1 As Presented in IOM Figure 5.4
+
+Here we plot our approximation of the data as presented in Figure 5.4 of the IOM report.
+
+```{r plotDataAsPresented, fig.width = 6, fig.height = 6}
+
+plot(vitD[,"IOMIntake"], 
+     vitD[,"IOMLevel"], 
+     pch=vitD[,"PlotSymbol"], 
+     bg=as.character(vitD[,"Color"]), cex=2,
+     xlab="Vit D Intake in IU",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Data from Studies Used for\nIOM Vit D Review, 2010",
+     ylim=c(0,110), xlim=c(0,2500))
+
+```
+
+## 3.2 Using Log TI Axis
+
+Next, we plot the data after log-transforming the x-values, as was done for modeling purposes.
+
+```{r plotDataWLog, fig.width = 6, fig.height = 6}
+
+plot(log(vitD[,"TotalIntake"]), 
+     vitD[,"AchievedLevel"], 
+     pch=vitD[,"PlotSymbol"], 
+     bg=as.character(vitD[,"Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Studies Used by IOM Vit D Review, 2010",
+     xlim=c(0,8), ylim=c(0,110))
+
+```
+
+# 4 Focus on Young Data
+
+## 4.1 The Studies Involving Young Participants
+
+Here, we fit models for the studies involving only young participants. Specifically, we use data from 3 studies:
+
+```{r idYoungStudies}
+
+as.character(unique(vitD[vitD[,"Age.Group"]=="Young","Study"]))
+
+```
+
+## 4.2 Plotting the Young Data
+
+```{r plotYoung, fig.width = 6, fig.height = 6}
+
+plot(vitD[vitD[,"Age.Group"]=="Young","IOMIntake"], 
+     vitD[vitD[,"Age.Group"]=="Young","IOMLevel"], 
+     pch=vitD[vitD[,"Age.Group"]=="Young","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Young","Color"]), cex=2,
+     xlab="Vit D Intake in IU",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Data from Studies Used in IOM Review\nInvolving Children",
+     ylim=c(0,110), xlim=c(0,2500))
+
+legend(c(0,625),c(80,110),legend=c("Ala-Houhala", 
+                      "Schou",
+                      "Viljakainen"),
+       pch=21, pt.bg=c("yellow", "orange", "magenta"))
+
+
+```
+
+There's a problem here, in that some of the data values are overplotted, so we jitter the points for display. 
+
+```{r plotYoungJittered, fig.width = 6, fig.height = 6}
+
+set.seed(2000)
+
+plot(jitter(vitD[vitD[,"Age.Group"]=="Young","IOMIntake"], amount=30), 
+     jitter(vitD[vitD[,"Age.Group"]=="Young","IOMLevel"], amount=5), 
+     pch=vitD[vitD[,"Age.Group"]=="Young","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Young","Color"]), cex=2,
+     xlab="Vit D Intake in IU",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Data from Studies Used in IOM Review\nInvolving Children (Jittered)",
+     ylim=c(0,110), xlim=c(0,2500))
+
+legend(c(0,625),c(80,110),legend=c("Ala-Houhala", 
+                      "Schou",
+                      "Viljakainen"),
+       pch=21, pt.bg=c("yellow", "orange", "magenta"))
+
+```
+
+Now we see the data used for all three studies. 
+
+## 4.3 Plotting Young Data, Logged
+
+Next, we plot the data after log-transforming the x-values, as was done for modeling purposes.
+
+```{r plotYoungWLog, fig.width = 6, fig.height = 6}
+
+plot(log(vitD[vitD[,"Age.Group"]=="Young","IOMIntake"]), 
+     vitD[vitD[,"Age.Group"]=="Young","IOMLevel"], 
+     pch=vitD[vitD[,"Age.Group"]=="Young","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Young","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Data from Studies Used in IOM Review\nInvolving Children, Log(TI)",
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,100),legend=c("Ala-Houhala", 
+                      "Schou",
+                      "Viljakainen"),
+       pch=21, pt.bg=c("yellow", "orange", "magenta"))
+
+```
+
+As before, we need to jitter the data to see what's going on.
+
+```{r plotYoungWLogJittered, fig.width = 6, fig.height = 6}
+
+set.seed(2000)
+
+plot(jitter(log(vitD[vitD[,"Age.Group"]=="Young","IOMIntake"]), amount=0.1), 
+     jitter(vitD[vitD[,"Age.Group"]=="Young","IOMLevel"],amount=5), 
+     pch=vitD[vitD[,"Age.Group"]=="Young","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Young","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main=paste0("Data from Studies Used in IOM Review\n",
+                 "Involving Children, Log(TI), Jittered"),
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,100),legend=c("Ala-Houhala", 
+                      "Schou",
+                      "Viljakainen"),
+       pch=21, pt.bg=c("yellow", "orange", "magenta"))
+
+```
+
+We can now see the general structure of the data. 
+
+# 5 Fitting LME Models
+
+Now we fit a linear mixed effect model to the data at hand.
+
+```{r fitYoung}
+
+vitDYoungIom <- 
+  lmer(IOMLevel ~ -1 + log(IOMIntake) + 
+         (-1 + log(IOMIntake)|Study),
+       data=vitD[vitD[,"Age.Group"]=="Young",])
+
+summary(vitDYoungIom)
+
+```
+
+The main fixed effect model estimate, `r fixef(vitDYoungIom)`, is close to the IOM's reported value of 8.6, which is reassuring.  
+
+We'd also like to assemble a prediction interval that will (we think) have a 95\% chance of covering a new observation. This is actually a bit tricky, because there are several sources of variance involved:
+
+1. variation associated with our fit of the mean curve
+2. variation associated with a new study relative to the mean curve
+3. variation associated with a new observation from the new study
+
+If we were just to focus on the first type of variation, then (assuming our estimates are approximately normally distributed about the true value), then we could extend our interval out some number of standard deviations around the estimated value. If we assume we've got a normal distribution, going 2 sd out to either side will be pretty close. Here, that would give 8.561 $\pm$ 2*0.795, or (6.971, 10.151). This is too narrow for a few reasons. First, this interval will get increasingly narrow as the number of studies increases, tending eventually to zero width. This can never be true for a new observation, but it can be true for our knowledge about the center of a distribution. Second, the number of studies involved here (3) is pretty darn small, so assuming "2" standard deviations is enough is probably too generous. While the 97.5th percentile for a standard normal is `r qnorm(0.975)`, the corresponding percentile for a $t_2$ distribution is `r qt(0.975, 2)`; the t-distribution is still much wider. 
+
+If we were to focus just on the second type of variation, then (assuming our point estimate of the center is known without error and we're dealing with a normal distribution), this would give 8.561 $\pm$ 2*1.248, or (6.065, 11.057). This interval looks very close to the one reported by the IOM (6.0, 11.3), so we're guessing this is what was done. This interval is too narrow (a) for the reasons cited above, and (b) because it ignores the uncertainty in our central estimate. 
+
+The third type of variation is harder, in that it also implicitly presumes we know the x-location at which it is to be applied. We will set this aside for now. 
+
+# 6 Plotting Model Fits
+
+## 6.1 Adding Study Estimates
+
+Now we add our model fits to the plot in stages. First, we add lines for each study estimate. These can be readily extracted from the lmer model:
+
+```{r getStudyFits}
+
+coef(vitDYoungIom)$Study
+
+```
+
+Now we add these lines to the plot, going through the origin per specification.
+
+```{r plotYoungWLogJitteredWStudy, fig.width = 6, fig.height = 6}
+
+set.seed(2000)
+
+plot(jitter(log(vitD[vitD[,"Age.Group"]=="Young","IOMIntake"]), amount=0.1), 
+     jitter(vitD[vitD[,"Age.Group"]=="Young","IOMLevel"],amount=5), 
+     pch=vitD[vitD[,"Age.Group"]=="Young","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Young","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main=paste0("Young Model Fits, by Study\nPoints Jittered"),
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,100),legend=c("Ala-Houhala", 
+                      "Schou",
+                      "Viljakainen"),
+       pch=21, pt.bg=c("yellow", "orange", "magenta"))
+
+abline(0, coef(vitDYoungIom)$Study["AlaHouhala1988",], col="gold")
+abline(0, coef(vitDYoungIom)$Study["Schou2003",], col="orange")
+abline(0, coef(vitDYoungIom)$Study["Viljakainen2006a",], col="magenta")
+
+```
+
+## 6.2 Adding Our Model Estimates
+
+Next, we add the main model fit +/-2 times the standard deviation of the study random effect.
+
+```{r plotYoungWLogJitteredWStudyWSE, fig.width = 6, fig.height = 6}
+
+set.seed(2000)
+
+plot(jitter(log(vitD[vitD[,"Age.Group"]=="Young","IOMIntake"]), amount=0.1), 
+     jitter(vitD[vitD[,"Age.Group"]=="Young","IOMLevel"],amount=5), 
+     pch=vitD[vitD[,"Age.Group"]=="Young","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Young","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main=paste0("Young Model Fits, by Study, Points Jittered\n",
+                 "With Model +/- 2*SD(RE)"),
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,100),legend=c("Ala-Houhala", 
+                      "Schou",
+                      "Viljakainen"),
+       pch=21, pt.bg=c("yellow", "orange", "magenta"))
+
+abline(0, coef(vitDYoungIom)$Study["AlaHouhala1988",], col="gold")
+abline(0, coef(vitDYoungIom)$Study["Schou2003",], col="orange")
+abline(0, coef(vitDYoungIom)$Study["Viljakainen2006a",], col="magenta")
+
+pointEst <- 
+  summary(vitDYoungIom)$coefficients["log(IOMIntake)","Estimate"]
+sdRE <- sqrt(as.numeric(VarCorr(vitDYoungIom)))
+abline(0, pointEst, lwd=2)
+abline(0, pointEst - 2*sdRE, lty="dashed", lwd=2)
+abline(0, pointEst + 2*sdRE, lty="dashed", lwd=2)
+
+```
+
+## 6.3 Adding the IOM Model Fits
+
+Now we superimpose the reported IOM estimates.
+
+```{r plotYoungWLogJitteredWStudyWSE2, fig.width = 6, fig.height = 6}
+
+set.seed(2000)
+
+plot(jitter(log(vitD[vitD[,"Age.Group"]=="Young","IOMIntake"]), amount=0.1), 
+     jitter(vitD[vitD[,"Age.Group"]=="Young","IOMLevel"],amount=5), 
+     pch=vitD[vitD[,"Age.Group"]=="Young","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Young","Color"]), cex=2,
+     xlab="Log(Vit D Intake in IU)",
+     ylab="Serum 25(OH)D in nmol/L",
+     main=paste0("Young Model Fits, by Study, Points Jittered\n",
+                 "With Model +/- 2*SD(RE), and IOM Fits (blue)"),
+     ylim=c(0,110), xlim=c(0,8))
+
+legend(c(0,2),c(70,100),legend=c("Ala-Houhala", 
+                      "Schou",
+                      "Viljakainen"),
+       pch=21, pt.bg=c("yellow", "orange", "magenta"))
+
+abline(0, coef(vitDYoungIom)$Study["AlaHouhala1988",], col="gold")
+abline(0, coef(vitDYoungIom)$Study["Schou2003",], col="orange")
+abline(0, coef(vitDYoungIom)$Study["Viljakainen2006a",], col="magenta")
+
+pointEst <- 
+  summary(vitDYoungIom)$coefficients["log(IOMIntake)","Estimate"]
+sdRE <- sqrt(as.numeric(VarCorr(vitDYoungIom)))
+abline(0, pointEst, lwd=2)
+abline(0, pointEst - 2*sdRE, lty="dashed", lwd=2)
+abline(0, pointEst + 2*sdRE, lty="dashed", lwd=2)
+
+abline(0, 8.6, lwd=6, lty="dotted", col="blue")
+abline(0, 6.0, lwd=6, lty="dotted", col="blue")
+abline(0, 11.3, lwd=6, lty="dotted", col="blue")
+
+```
+
+## 6.4 Undo Log
+
+Finally, we undo the log transform to match the IOM's method of display.
+
+```{r plotYoungJitteredWModel, fig.width = 6, fig.height = 6}
+
+set.seed(2000)
+
+plot(jitter(vitD[vitD[,"Age.Group"]=="Young","IOMIntake"], amount=30), 
+     jitter(vitD[vitD[,"Age.Group"]=="Young","IOMLevel"], amount=5), 
+     pch=vitD[vitD[,"Age.Group"]=="Young","PlotSymbol"], 
+     bg=as.character(vitD[vitD[,"Age.Group"]=="Young","Color"]), cex=2,
+     xlab="Vit D Intake in IU",
+     ylab="Serum 25(OH)D in nmol/L",
+     main="Young Model Fits",
+     ylim=c(0,110), xlim=c(0,2500))
+
+legend(c(0,625),c(80,110),legend=c("Ala-Houhala", 
+                      "Schou",
+                      "Viljakainen"),
+       pch=21, pt.bg=c("yellow", "orange", "magenta"))
+
+ciX <- seq(from=1, to=2400, by=1)
+
+lines(ciX, pointEst*log(ciX), lwd=2)
+lines(ciX, (pointEst - 2*sdRE)*log(ciX), lty="dashed", lwd=2)
+lines(ciX, (pointEst + 2*sdRE)*log(ciX), lty="dashed", lwd=2)
+
+lines(ciX, 8.6*log(ciX), lwd=6, lty="dotted", col="blue")
+lines(ciX, 6.0*log(ciX), lwd=6, lty="dotted", col="blue")
+lines(ciX, 11.3*log(ciX), lwd=6, lty="dotted", col="blue")
+
+```
+
+# References
+
+[iom2011]: http://www.nationalacademies.org/hmd/Reports/2010/Dietary-Reference-Intakes-for-Calcium-and-Vitamin-D.aspx "IOM, 2011, Dietary Reference Intakes for Calcium and Vitamin D, National Academies Press"
+
+[IOM, 2011, Dietary Reference Intakes for Calcium and Vitamin D, National Academies Press](http://www.nationalacademies.org/hmd/Reports/2010/Dietary-Reference-Intakes-for-Calcium-and-Vitamin-D.aspx)

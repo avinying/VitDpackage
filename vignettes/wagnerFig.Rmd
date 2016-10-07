@@ -1,0 +1,467 @@
+---
+title: "Plot Wagner Data"
+author: "Keith Baggerly"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Plot Wagner Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::knitr}
+---
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# 1 Executive Summary
+
+## 1.1 Introduction
+
+We want to graphically summarize the background and context of the retrospective reanalyses we performed in Wagner et al 2016. Specifically, we want to look at 
+
+* preterm birth rates by dose level
+* serum level by dose
+* gestation weeks by serum level
+* a loess fit of the latter
+
+## 1.2 Data and Methods
+
+We use data collected in "Wagner MOD Data File_Keith_with Dose.csv", which has columns for
+
+* Anonymized Patient ID
+* Baseline Vit D Level in ng/mL (continuous)
+* Delivery Vit D Level in ng/mL (continuous)
+* Gestation time in weeks (continuous)
+* Study Participated in (NICHD or TRF)
+* Ethnicity (Black, White, Hispanic, Other); separate columns for each
+* Parity (discrete count)
+* Gravidity (discrete count)
+* Insurance status (None/Medicaid, Other)
+* Marital status (Married, Not Married)
+* Education level (>= some college, < some college)
+* Mother Age at Onset (conception)
+* Vitamin D dose level
+
+We plot gestation weeks by vitamin D dose level, using both jittered dotplots and boxplots.
+
+We plot serum level at delivery by vitamin D dose level, using both jittered dotplots and boxplots.
+
+We plot gestation weeks by serum level, with a loess fit superimposed. We use Wilcoxon tests to check for differences in gestation time by serum level category ($<20$ or $>=40$).
+
+We zoom in on the loess fit to see what serum level is reached before gestation time "plateaus".
+
+We also use a loess fit of the binary response ("is preterm", yes or no) as a function of serum level to estimate the hazard of preterm birth.
+
+For easier comparison later with the results of Bodnar et al, we adjust the hazard plot to use the same units (nmol/L) and display range (20 to 120).
+
+## 1.3 Results
+
+We export images for
+
+* gestationByDoseDots.png
+* serumByDoseJitter.png
+* jitterSerumByDoseBox.png
+* gestationBySerumLevelDot.png
+* gestationBySerumLoessZoom.png
+* pretermHazardBySerumLevel.png
+* mimicBodnar.png
+
+There is effectively no visible association between gestation time and dose group. 
+
+There is an association between dose group and serum level, but the distributions of serum levels within a dose level are very broad and overlap substantially. 
+
+There is an association between gestation time and serum level, suggesting this is the cleaner metric to use. 
+
+Zooming on the loess fit of gestation time as a function of serum level suggests things plateau by about 40 ng/mL or so.
+
+Using loess to fit "is preterm" (yes/no) suggests the instantaneous hazard of preterm birth is 13.9\% at 20 ng/mL, and 7.2\% at 40 ng/mL. These estimates are still pretty fuzzy, but will firm up as we get more data.
+
+The decrease is also visible when zoomed to the Bodnar range.
+
+## 1.4 Conclusions
+
+The association between preterm birth and 25(OH)D serum level is much clearer than the association between preterm birth and dose level. 
+
+# 2 Load Data
+
+First, we load the data from "Wagner MOD Data File_Keith_with Dose.csv".
+
+```{r loadWagner}
+
+wagner <- 
+  read.csv(system.file('extdata','Wagner MOD Data File_Keith_with Dose.csv',package='VitDpackage'), header=TRUE, stringsAsFactors = FALSE)
+
+dim(wagner)
+head(wagner, 3)
+
+```
+
+# 3 Plot Data
+
+## 3.1 Gestational Weeks by Dose Level
+
+First, we jitter the week and dose values to avoid overplotting.
+
+```{r plotTimeByDose, fig.width = 6, fig.height = 6}
+
+set.seed(1000)
+jitterDose <- jitter(wagner[,"dose"])
+jitterWeeks <- jitter(wagner[,"Gestation_Weeks_At_Delivery"])
+jitterSerum <- jitter(wagner[,"Delivery_25.OH.D"])
+jitterBase <- jitter(wagner[,"Baseline_25.OH.D"])
+
+```
+
+Next, we plot gestation in weeks as a function of treatment dose.
+
+```{r drawingBasePlotDose,fig.width = 6, fig.height = 6}
+
+drawBasePlotDose <- function(dotColor="black"){
+  
+  plot(c(0,4400), c(26.5, 41.5), type="n",
+       xlab="Jittered Treatment Dose in IU (400, 2000, 4000)",
+       ylab="Gestation in Weeks",
+       main=paste0("Gestation vs Vit D Dose\n",
+                   "Combined TRF and NICHD Trials, n=509"))
+  
+  polygon(c(0,4400,4400,0), 
+          c(26.5, 26.5, 32, 32), col="indianred1", border=NA)
+  polygon(c(0,4400,4400,0), 
+          c(32, 32, 37, 37), col="lightpink", border=NA)
+  points(jitterDose, jitterWeeks, pch=20, bg="gray", col=dotColor)
+  abline(v=c(0,800,1600,2400,3600,4400))
+  text(3500, 37.5, "Term", adj=c(1,0))
+  text(3500, 32.5, "Preterm", adj=c(1,0))
+  text(3500, 27, "Very Preterm", adj=c(1,0))
+  
+}
+
+drawBasePlotDose()
+
+```
+
+We also export the plot to "gestationByDoseDots.png".
+
+```{r exportDots,eval=FALSE,echo=FALSE}
+
+png(file="../../Images/gestationByDoseDots.png")
+drawBasePlotDose()
+dev.off()
+
+```
+
+Guess what, there doesn't look like much here. Boxplots also aren't promising.
+
+```{r boxWeeksByDose,fig.width = 6, fig.height = 6}
+
+boxplot(jitterWeeks ~ wagner[,"dose"],
+        xlab="Treatment Dose in IU",
+        ylab="Gestation Time in Weeks",
+        main="Gestation Time by Treatment Dose")
+
+```
+
+Statistical tests don't show significant differences either.
+
+```{r testWeeks}
+
+wilcox.test(jitterWeeks[wagner[,"dose"]==400],
+            jitterWeeks[wagner[,"dose"]==2000])
+wilcox.test(jitterWeeks[wagner[,"dose"]==400],
+            jitterWeeks[wagner[,"dose"]==4000])
+wilcox.test(jitterWeeks[wagner[,"dose"]==2000],
+            jitterWeeks[wagner[,"dose"]==4000])
+
+```
+
+## 3.2 Serum Level by Dose
+
+Given that there's such heterogeneity in terms of ending serum level as a function of dose in the True North data (Veugelers et al, 2015) and the Grassroots Health data (Heaney et al, 2015), it's worth checking the association between dose and serum level. 
+
+```{r plotSerumVsDose,fig.width = 6, fig.height = 6}
+
+plot(jitterDose, jitterSerum,
+     xlab="Treatment Dose in IU",
+     ylab="Serum 25(OH)D at Delivery",
+     main="Serum Level by Treatment Dose")
+
+```
+
+There does appear to be a trend here, but it looks pretty fuzzy. 
+
+We export a plot of "serumByDoseJitter.png".
+
+```{r exportSerumVDoseJ,echo=FALSE,eval=FALSE}
+
+png(file="../../Images/serumByDoseJitter.png")
+plot(jitterDose, jitterSerum,
+     xlab="Treatment Dose in IU",
+     ylab="Serum 25(OH)D at Delivery",
+     main="Serum Level by Treatment Dose")
+dev.off()
+
+```
+
+Maybe a boxplot will throw things in starker relief.
+
+```{r boxSerumByDose,fig.width = 6, fig.height = 6}
+
+boxplot(jitterSerum ~ wagner[,"dose"],
+        xlab="Treatment Dose in IU",
+        ylab="Serum 25(OH)D at Delivery",
+        main="Serum Level by Treatment Dose")
+
+```
+
+Yep, the medians are increasing, but the association isn't super tight.
+
+We export "jitterSerumByDoseBox.png".
+
+```{r exportSerumByDoseBox,eval=FALSE,echo=FALSE}
+
+png(file="../../Images/jitterSerumByDoseBox.png")
+boxplot(jitterSerum ~ wagner[,"dose"],
+        xlab="Treatment Dose in IU",
+        ylab="Serum 25(OH)D at Delivery",
+        main="Serum Level by Treatment Dose")
+dev.off()
+
+```
+
+Statistical tests confirm the association is "significant", however.
+
+```{r testSerumByDose}
+
+wilcox.test(jitterSerum[wagner[,"dose"]==400],
+            jitterSerum[wagner[,"dose"]==2000])
+wilcox.test(jitterSerum[wagner[,"dose"]==400],
+            jitterSerum[wagner[,"dose"]==4000])
+wilcox.test(jitterSerum[wagner[,"dose"]==2000],
+            jitterSerum[wagner[,"dose"]==4000])
+
+```
+
+## 3.3 Gestation Weeks by Serum Level
+
+Next, we plot gestation weeks as a function of serum level, superimposing a loess fit.
+
+```{r drawingBasePlot,fig.width = 6, fig.height = 6}
+
+drawBasePlot <- function(dotColor="black"){
+  
+  plot(c(4,101), c(26.5, 41.5), type="n",
+       xlab="25.OH.D in ng/mL at Time of Delivery",
+       ylab="Gestation in Weeks",
+       main="Gestation vs Serum Vitamin D Level")
+  
+  polygon(c(4,101,101,4), c(26.5, 26.5, 32, 32), col="indianred1", border=NA)
+  polygon(c(4,101,101,4), c(32, 32, 37, 37), col="lightpink", border=NA)
+  points(jitterSerum, jitterWeeks, pch=20, bg="gray", col=dotColor)
+  abline(v=c(20,40))
+  text(100, 37.5, "Term", adj=c(1,0))
+  text(100, 32.5, "Preterm", adj=c(1,0))
+  text(100, 27, "Very Preterm", adj=c(1,0))
+  
+  loessFit <- loess(jitterWeeks ~ jitterSerum)
+  lines(jitterSerum[order(jitterSerum)], 
+        loessFit[["fitted"]][order(jitterSerum)],
+        col="orange", lwd=4)
+  
+}
+
+drawBasePlot()
+mtext(c("IOM", "GRH"), side=3, at=c(20,40))
+
+```
+
+Guess what, there looks like a trend here!
+
+We export "gestationBySerumLevelDot.png".
+
+```{r exportGestBySerumDot,eval=FALSE,echo=FALSE}
+
+png(file="../../Images/gestationBySerumLevelDot.png")
+
+drawBasePlot()
+mtext(c("IOM", "GRH"), side=3, at=c(20,40))
+
+dev.off()
+
+```
+
+We can also test whether the ends look different.
+
+```{r testWeeksBySerum}
+
+wilcox.test(jitterWeeks[jitterSerum < 20],
+            jitterWeeks[jitterSerum > 40])
+
+timeGroup <- rep("Term", nrow(wagner))
+timeGroup[wagner[,"Gestation_Weeks_At_Delivery"] < 37] <- "Preterm"
+timeGroup[wagner[,"Gestation_Weeks_At_Delivery"] < 33] <- "Very Preterm"
+serumGroup <- rep("40 <= x", nrow(wagner))
+serumGroup[wagner[,"Delivery_25.OH.D"] < 40] <- "20 <= x < 40"
+serumGroup[wagner[,"Delivery_25.OH.D"] < 20] <- "x < 20"
+
+table(timeGroup, serumGroup)
+
+```
+
+The difference is also statistically significant.
+
+## 3.4 Zoom on Loess Fit
+
+Next, we look more closely at the loess fit. The fitted curve is interesting - where does it show changes?
+
+```{r plotCurveWoData,fig.width = 6, fig.height = 6}
+
+loessZoom <- function(){
+
+  loessFit <- loess(jitterWeeks ~ jitterSerum)
+  
+  targetRange <- seq(from=8, to=80, by=1)
+  modelFits <- predict(loessFit, targetRange, se=TRUE)
+  
+  plot(c(targetRange, rev(targetRange)),
+       c(modelFits[["fit"]] + 2*modelFits[["se.fit"]],
+         rev(modelFits[["fit"]] - 2*modelFits[["se.fit"]])),
+       type="n", 
+       xlab="Delivery OH.D Level in ng/mL",
+       ylab="Gestation in Weeks",
+       main="Model Fit with 1 and 2 SD Tubes Added")
+  polygon(c(targetRange, rev(targetRange)),
+          c(modelFits[["fit"]] + 2*modelFits[["se.fit"]],
+            rev(modelFits[["fit"]] - 2*modelFits[["se.fit"]])),
+          col="gray90")
+  polygon(c(targetRange, rev(targetRange)),
+          c(modelFits[["fit"]] + modelFits[["se.fit"]],
+            rev(modelFits[["fit"]] - modelFits[["se.fit"]])),
+          col="gray60")
+  lines(targetRange, modelFits[["fit"]], col="orange", lwd=4)
+  
+  abline(v=c(20,40))
+  mtext(c("IOM", "GRH"), side=3, at=c(20,40))
+  
+}
+
+loessZoom()
+
+```
+
+It appears to be going up to about 40, after which it "plateaus".
+
+We export "gestationBySerumLoessZoom.png".
+
+```{r exportGestBySerumLoess,eval=FALSE,echo=FALSE}
+
+png(file="../../Images/gestationBySerumLoessZoom.png")
+loessZoom()
+dev.off()
+
+```
+
+## 3.5 Estimating Preterm Hazard as a Function of Serum Level
+
+We can also recast gestation time as a binary indicator of whether the birth is preterm or not, and use loess to estimate the hazard as a function of serum level.
+
+```{r getHazard,fig.width = 6, fig.height = 6}
+
+plotHazard <- function(){
+
+  hazardEst <- 
+    loess((wagner[,"Gestation_Weeks_At_Delivery"] < 37) ~
+            wagner[,"Delivery_25.OH.D"])
+  
+  targetRangeH <- seq(from=8, to=80, by=1)
+  modelFitsH <- predict(hazardEst, targetRangeH, se=TRUE)
+  
+  plot(c(targetRangeH, rev(targetRangeH)),
+       c(modelFitsH[["fit"]] + 2*modelFitsH[["se.fit"]],
+         rev(modelFitsH[["fit"]] - 2*modelFitsH[["se.fit"]])),
+       type="n", 
+       xlab="Delivery OH.D Level in ng/mL",
+       ylab="Hazard of Preterm Birth",
+       main="Hazard of Preterm Birth by Serum Level")
+  polygon(c(targetRangeH, rev(targetRangeH)),
+          c(modelFitsH[["fit"]] + 2*modelFitsH[["se.fit"]],
+            rev(modelFitsH[["fit"]] - 2*modelFitsH[["se.fit"]])),
+          col="gray90")
+  polygon(c(targetRangeH, rev(targetRangeH)),
+          c(modelFitsH[["fit"]] + modelFitsH[["se.fit"]],
+            rev(modelFitsH[["fit"]] - modelFitsH[["se.fit"]])),
+          col="gray60")
+  lines(targetRangeH, modelFitsH[["fit"]], col="orange", lwd=4)
+  
+  abline(v=c(20,40))
+  mtext(c("IOM", "GRH"), side=3, at=c(20,40))
+  
+}
+
+plotHazard()
+
+```
+
+This looks interesting, and seems to plateau around 40.
+
+Using loess to fit "is preterm" (yes/no) suggests the instantaneous hazard of preterm birth is 13.9\% at 20 ng/mL, and 7.2\% at 40 ng/mL. These estimates are still pretty fuzzy, but will firm up as we get more data.
+
+We export "pretermHazardBySerumLevel.png".
+
+```{r exportHazard,eval=FALSE,echo=FALSE}
+
+png(file="../../Images/pretermHazardBySerumLevel.png")
+plotHazard()
+dev.off()
+
+```
+
+Recently, Bodnar et al, 2015 looked at hazard too. To make comparison easier, let's use the same units (nmol/L) and range of display (from 20 to 120) that they did.
+
+```{r mimicBodnar,fig.width = 6, fig.height = 6}
+
+mimicBodnar <- function(){
+
+  hazardEst <- 
+    loess((wagner[,"Gestation_Weeks_At_Delivery"] < 37) ~
+            wagner[,"Delivery_25.OH.D"])
+  
+  targetRangeH <- seq(from=8, to=80, by=1)
+  modelFitsH <- predict(hazardEst, targetRangeH, se=TRUE)
+  
+  plot(2.5*c(targetRangeH, rev(targetRangeH)),
+       c(modelFitsH[["fit"]] + 2*modelFitsH[["se.fit"]],
+         rev(modelFitsH[["fit"]] - 2*modelFitsH[["se.fit"]])),
+       type="n", 
+       xlab="Delivery OH.D Level in nmol/L",
+       ylab="Hazard of Preterm Birth",
+       main="Hazard of Preterm Birth by Serum Level",
+       xlim=c(20,120), ylim=c(0,0.33))
+  polygon(2.5*c(targetRangeH, rev(targetRangeH)),
+          c(modelFitsH[["fit"]] + 2*modelFitsH[["se.fit"]],
+            rev(modelFitsH[["fit"]] - 2*modelFitsH[["se.fit"]])),
+          col="gray90")
+  polygon(2.5*c(targetRangeH, rev(targetRangeH)),
+          c(modelFitsH[["fit"]] + modelFitsH[["se.fit"]],
+            rev(modelFitsH[["fit"]] - modelFitsH[["se.fit"]])),
+          col="gray60")
+  lines(2.5*targetRangeH, modelFitsH[["fit"]], col="orange", lwd=4)
+  
+  abline(v=2.5*c(20,40))
+  mtext(c("IOM", "GRH"), side=3, at=2.5*c(20,40))
+  
+}
+
+mimicBodnar()
+
+```
+
+Let's export this figure as "mimicBodnar.png".
+
+```{r exportBodnar,eval=FALSE,echo=FALSE}
+
+png(file="../../Images/mimicBodnar.png")
+mimicBodnar()
+dev.off()
+
+```
+

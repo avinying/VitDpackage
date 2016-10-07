@@ -1,0 +1,776 @@
+---
+title: "Talk Annotations"
+author: "Keith Baggerly"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Talk Annotations}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# 1. Introducing Vitamins and Vitamin D
+
+**Slide 1**
+
+Welcome!
+
+**Slide 2**
+
+Vitamin history is pretty cool, at least in part because
+it illustrates how long it can take for correct ideas to 
+be adopted. 
+
+**Slide 3**
+
+Vitamins (and other nutrients and drugs) were often oversold
+as panaceas after their initial discovery. Just because we
+need a little, however, doesn't mean that a lot is always
+a good thing. 
+
+**Slide 4**
+
+Vitamin D is an exception, since we didn't initially get 
+it from diet.
+
+**Slide 5**
+
+Units of measurement - basic notes, since there are 
+several different metrics in common use.
+
+**Slide 6**
+
+Picture of everything, in part to show 
+
+* how we can get vit D from both sunlight/UVB and diet
+* the wide range of cell types affected
+* that some organs react to 25(OH)D, and others to 1,25$(OH)_2$D
+
+# 2. Nutrient Levels, DRIs, and Controversy
+
+**Slide 7**
+
+Three letter acronyms for important DRI levels. 
+Here for reference!
+
+**Slide 8**
+
+DRIs (EAR, RDA) in Pictures
+
+The really key things we need to agree on are
+
+* a "healthy" serum level
+* a dose-response curve
+* how variable that curve is
+
+if the models or the variability change, then 
+the RDA can move around a lot even when the healthy
+level is fixed. Thus, an "RDA-linked serum level" 
+isn't defined until we specify the curve and 
+variability.
+
+**Slide 9**
+
+DRIs for Adults - partially to show evolution of 
+recommendations over time, but mostly to show that
+there's active disagreement today about how much 
+we need. 
+
+We're in disagreement about important points
+right away.
+
+# 3. Dissecting Controversy; Reviewing Official IOM Recommendations
+
+## 3.1 How "Healthy" Levels are Estimated, Dispute, and Response
+
+**Slide 10**
+
+EAR and the choice of bone health
+
+**Slide 11**
+
+Priemel et al and Autopsy background.
+
+**Slide 12**
+
+The key figure from Priemel et al. Michael Amling
+was trying to use these results (and the fact that
+they pointed to at least 30 ng/mL as the key level)
+to argue for the reintroduction of food fortifications
+in Germany, an effort which was somewhat undermined
+by how the IOM chose to use his data.
+
+**Slide 13**
+
+How the IOM chose their 20 ng/mL cutpoint in their
+own words. Since they highlight Priemel et al as a
+particularly important paper in reaching their assessment,
+the fact that they disagree with the initial authors
+needs exploration.
+
+It's worth pausing at this point and asking the 
+audience if they see anything wrong with the IOM's
+statement. There are at least two:
+
+1. Their method of estimating percentages is wrong
+from a mathematical point of view (next slide)
+
+2. (subtle) By focusing on a percentage (97.5\%) in 
+choosing a healthy level, they're presuming an 
+"RDA-linked serum level" exists, which it doesn't
+(see Slide 8)
+
+**Slide 14**
+
+The first math error, focusing on the wrong way of 
+counting.
+
+**Slide 15**
+
+The IOM responses to identification and reporting of
+this first error, which I find disheartening. "It's
+standard procedure" may be a correct statement, but
+that just means the standard procedure is wrong. 
+
+## 3.2 How the RDA is Estimated, Dispute, and Response
+
+**Slide 16**
+
+RDA, and estimating how serum levels change in 
+response to dose. 
+
+This is actually two issues:
+
+* dealing with heterogeneity in patient response under
+similar conditions
+* dealing with heterogeneity in experimental protocols
+in attempting meta-analyses
+
+**Slide 17**
+
+How the IOM chose the studies they were going to use. 
+
+While there are things I disagree with here (I think
+complete exclusion of non-RCT data loses too much, and
+subsetting for factor like latitude which can be adjusted
+for may be strange), this is at least an arguable case.
+
+**Slide 18**
+
+The 10 studies they used, with links.
+
+This number isn't large, and reading 10 papers is feasible. 
+
+**Slide 19**
+
+The info they gathered.
+
+This list isn't too bad, actually, but there's a challenge
+associated with the fact that having gathered it they then
+proceeded to ignore large chunks of it (e.g., sample sizes,
+standard deviations), as far as I can tell.
+
+**Slide 20**
+
+IOM Figure 5.3, showing the main model fits for young, 
+adult and old subcohorts. 
+
+Can't we do better than black and white images and
+fuzzy pixelation these days? In particular, I'd've
+liked to see which data points came from which studies. 
+
+**Slide 21**
+
+The types of models they fit - I had to search for 
+details here to make sure I hadn't missed anything.
+For example, the fact that they're working just from 
+the means shown in the plots is something I'm partially
+inferring from the text on p.383, as opposed to an
+explicit statement that only the (total intake, 
+achieved serum level) pairs were used in fitting the 
+models.
+
+**Slide 22**
+
+Our redo of the base data plot, with different
+studies in different colors. 
+
+Note, this mimics the plot shown in Figure 5-3, 
+which I think shows what the IOM used, as opposed
+to the values I think they should have used, which 
+are sometimes different. 
+
+**Slide 23**
+
+Log scale.
+
+The assumption that things should go through the 
+origin (which is far away from the data) places
+too much faith in their chosen model as being an
+accurate representation of reality as opposed to 
+a local convenience for summarization. 
+
+**Slide 24**
+
+The code for fitting one submodel, in 4 lines. 
+
+While this does require the data file I used, this
+isn't so huge as to preclude including it in the 
+publication itself, or linking to it in an appendix.
+
+**Slide 25**
+
+Code output, showing how you can get close to 
+the values reported using the mean (central)
+estimate +/2 sd.
+
+**Slide 26**
+
+The young data. 
+
+This is the beginning of a walkthrough of what 
+the model fitting actually entails, in an attempt
+to (a) demystify it so people recognize they can ask
+questions, and (b) to emphasize that the final amount
+of data values involved is pretty small.
+
+**Slide 27**
+
+The three study slopes. 
+
+Since the mixed effect model focuses mostly on the
+between study variation, this is meant to emphasize 
+that for purposes of estimating the common slope, 
+the real "n" involved isn't 9 (for data points), but
+3 (for studies), and 3 is really small if you want
+precision. 
+
+**Slide 28**
+
+The prediction interval using mean +/- 2sd.
+
+This could be bad because with 3 data points assuming
+normal quantiles (+/- 2) apply is likely assuming you 
+have more information than you do. Using a t-test, the
+intervals would need to be almost twice as wide. 
+
+**Slide 29**
+
+Adding the IOM fits.
+
+The agreement is reassuring given we tried to fit a
+model based on our interpretation of their description.
+
+**Slide 30**
+
+Undoing the log.
+
+Just visual confirmation that the curves look like 
+what the IOM chose to display. 
+
+**Slide 31**
+
+The Adult Data.
+
+Our best guess is that they used 3SD.
+
+This is disturbing
+
+* because 3 is a nonstandard value that should be 
+  explained if used
+* because if it's not 3, this suggests their model
+  fitting technique isn't very clearly defined
+* because it's hard for me to see how the same 
+  approach could have been used to fit both the 
+  young and the adult cohorts.
+  
+**Slide 32**
+
+The Old Data
+
+This is just bad. 
+
+The number of SD involved is way too small; the 
+intervals are too narrow. 
+
+Two observations from Cashman et al 2009 (purple)
+are missing from Figure 5-3, so we're not sure
+whether they were used or not.
+
+One of the observations from Van Der Klis et al
+actually reports average participant age, not 
+serum level. 
+
+Again, this suggests a consistent modeling approach
+was not employed, or not clearly described. The 
+missing/wrong data suggests these values weren't
+error checked, despite their importance for policy. 
+
+Again, this is meant to emphasize to the audience
+that the problems we're worried about aren't that
+complex, and can be clearly illustrated with a few
+moderately simple pictures. 
+
+It can also be noted that all of the code and data
+we used to generate our fits is available upon 
+request (and if I can get it done in time, I'll
+include it in an R package which I'll send along
+to the CDC for circulation along with my slides).
+
+**Slide 33**
+
+IOM Figure 5-4.
+
+Once you understand that the RDA is generally 
+derived from a prediction interval, and a prediction
+interval should be wide enough to contain most new
+points, not just the central curve, this plot is
+damning. 
+
+It suggests members of the committee either didn't 
+understand the models they were using or didn't look
+at their results very carefully. 
+
+**Slide 34**
+
+Our refit. 
+
+In addition to showing that the data bands should be 
+far wider, this implies the RDA needs to be much, much
+higher. In particular, if you draw a horizontal line
+at 50 nmol/L (the serum level mentioned by the IOM), the RDA should
+be where this line intersects the lower band. With the
+wider bands, this point isn't even on the plot (which
+only goes out to 2500 IU/day).
+
+Again, the lack of consistency between model and 
+submodel results raises big red flags for me. It's 
+one thing if they're doing one thing I can understand
+that might be wrong (and fixable); it's another if
+they're making different mistakes every time, but 
+the lack of code and documentation makes it impossible
+to tell.
+
+Normally, I'd prod the authors for clarification,
+but their response to Veugelers and Ekwaru (below)
+dims my enthusiasm for this.
+
+**Slide 35**
+
+Every fit is different.
+
+This is bad. 
+
+We weren't the first to notice the main point 
+that something had to be wrong based on Figure
+5-4; we may (based on our reexamination of the 
+submodels) be the first to notice how bad the 
+problem actually is. 
+
+**Slide 36**
+
+Veugelers and Ekwaru key figure. 
+
+They did a first-order approximation to show
+the dose had to be higher. I did it differently,
+but this is an equally valid way of making this
+main point. 
+
+**Slide 37**
+
+Veugelers and Ekwaru evidence. 
+
+This is the killer from the public health perspective. 
+
+The RDA is supposed to be enough to get most of the 
+population to the serum level required for benefit. 
+The recommended level isn't 
+doing the job (and not just failing by a little), 
+so the recommended level is wrong, regardless of 
+the mathematical model employed.
+
+**Slide 38**
+
+Pure North adverts in Canada.
+
+It's unusual to get lots of press for findings that
+can be labeled "technical"; here it involved a good
+deal of money. 
+
+**Slide 39**
+
+Press response. 
+
+"This debate can be left to statisticians" is an
+abdication of responsibility on the part of the 
+author with respect to understanding whether one
+group is right or wrong in a case where the disagreement
+isn't small; it also points out that statisticians need
+to be willing to clearly explain what these predictions
+mean in easily grasped terms. 
+
+Claiming that recommending high levels is irresponsible
+because of potential harms misses the point that 
+recommending excessively low levels is irresponsible
+for the same reason.
+
+**Slide 40**
+
+Health Canada response. 
+
+This is sad. 
+
+The math is wrong. When they got called on it, they
+asserted there wasn't a mistake, but didn't show what
+they did. This is not a refutation; it's an argument
+by reference to irrelevant authority. 
+
+**Slide 41**
+
+The Posted IOM response. 
+
+This is sad. 
+
+The figure and the explanation of what they did doesn't
+jibe with what's in the initial report - they're either
+making stuff up as they go or they need to supply details
+(e.g. code and data) showing how they arrive at the
+levels they do. 
+
+Further, their statement about what the goal is 
+shows they don't understand the fitting process
+in general - rather than working from a fixed 
+healthy serum level, they're assuming an RDA-linked
+serum level, which doesn't exist.
+
+**Slide 42**
+
+The IOM doubled down.
+
+In addition to the problems listed above, does
+their argument of harms at the upper end hold up?
+
+## 3.3 Assessing the Upper Limits of "Safe"
+
+**Slide 43**
+
+History of adverse events
+
+**Slide 44**
+
+Toxicity is rare. 
+
+This is important because the UL is often defined
+with reference to the NOAEL and LOAEL (see Hathcock
+et al 2007).
+
+**Slide 45**
+
+The IOM's choice of other considerations. 
+
+Including other considerations is fine, if the 
+evidence is strong enough to support them. It 
+really isn't here, and they appear to be going
+through contortions to include it. 
+
+For all-cause mortality, they worry about 
+the U-shaped curve.
+
+**Slide 46**
+
+IOM Figure 6.1; U-shape inferred from Jia et al. 
+
+Note; Jia et al neither showed this curve nor made
+the argument that the U-shaped curve was present. 
+They were contending that the lowest levels were
+bad. 
+
+**Slide 47**
+
+IOM Figure 6.2; U-shape inferred from Visser et al. 
+
+Again, this wasn't the focus of Visser et al.
+
+**Slide 48**
+
+IOM Figure 6.3; U-shape inferred from Melamed et al. 
+
+Again, this wasn't the focus of Melamed et al. 
+
+They're trying to pull in evidence that the initial 
+authors aren't claiming, so they need to build a 
+strong case. In this context, the absence of any 
+error bars or discussion of whether these "U"'s
+could be mathematical flukes is disturbing. 
+
+Further, they're relying solely on model fits to 
+aggregates. Looking at more of the data may give
+a clearer picture, and the initial papers may help
+with this. 
+
+**Slide 49**
+
+Jia et al Fig 1, K-M curves.
+
+Very low levels of vitamin D are clearly bad
+for overall survival. The distinction between 
+the upper levels shown is on the order of noise. 
+
+**Slide 50**
+
+Visser et al Fig 2, K-M curves. 
+
+The story here is the same as it was with Jia et al.
+
+Very low levels of vitamin D are clearly bad
+for overall survival. The distinction between 
+the upper levels shown is on the order of noise. 
+
+**Slide 51**
+
+Visser et al Fig 1
+
+The main focus of Visser et al actually wasn't
+overall mortality, but rather nursing home admission. 
+
+In this figure (which the IOM didn't allude to),
+there might actually be a difference between the 
+higher levels, and the difference is clearly in 
+the direction that higher is better. 
+
+**Slide 52**
+
+Melamed et al Figure 1, loess curve. 
+
+The story here is the same as it was with Jia et al
+and Visser et al.
+
+Very low levels of vitamin D are clearly bad
+for overall survival. The distinction between 
+the upper levels shown is on the order of noise. 
+
+**Slide 53**
+
+Other factors
+
+Cancer - U-shaped curve argument; here driven
+by binning "on up" in the last bin. 
+
+Cardiovascular - ambiguous based on their discussion.
+I haven't looked at these papers in detail. 
+
+Falls - the IOM concluded there wasn't evidence of 
+benefit with respect to falls, and the one study 
+they cite showing clear evidence of harms involved
+bolus doses of 500K IU (which could well produce
+toxicity).
+The International Osteoporosis Foundation's official
+position is that higher vitamin D levels do help 
+prevent falls. 
+
+**Slide 54**
+
+The IOM claims the U-shaped curve is there.
+
+They haven't made this case; their claim is 
+far stronger than the data will support.
+
+**Slide 55**
+
+Hathcock summary
+
+Returning to NOAEL and LOAEL and fairly clear
+definitions of toxicity, the Hathcock et al 
+survey suggests there's a lot of safe margin
+at the upper end. This was known (and alluded
+to by the IOM) when they wrote their report.
+
+# 4. New Data Appearing After the IOM Report
+
+**Slide 56**
+
+Is there new evidence today?
+
+A selection of key papers illustrating information
+any review conducted today should take into account.
+
+## 4.1 Safety
+
+**Slide 57**
+
+Dudenkov et al 
+
+reviewing over 1K cases where serum levels exceed 50 ng/mL
+show negligible evidence of harm anywhere near this
+cutoff, well in line with Hathcock et al. 
+
+This gets at the UL.
+
+## 4.2 Data Driven Assessments of Dose-Reponse
+
+**Slide 58**
+
+Heaney et al 2015
+
+The GRH cohort data showing the scale of heterogeneity
+in serum level in response to supplement dose. 
+
+Large dataset empirically showing the RDA is too low.
+
+**Slide 59**
+
+Veugelers et al 2015
+
+The Pure North cohort data showing the scale of heterogeneity
+in serum level in response to supplement dose. 
+
+Large dataset empirically showing the RDA is too low.
+
+## 4.3 Assessment of Evolutionary "Healthy"/Normal Levels
+
+**Slide 60**
+
+Luxwolda et al 2013
+
+Levels in Africa are much higher than what we're
+debating now; this gets at the definition of a healthy
+serum level as well as both the EAR and UL. 
+
+Further, levels in pregnancy are far higher yet, 
+getting at the healthy serum level and EAR (in this cohort) 
+and UL (likely overall)
+
+# 5. Preterm Birth
+
+## 5.1 Current Levels vs Evolutionary Levels
+
+**Slide 61**
+
+Adding MUSC to Luxwolda
+
+Many MUSC women have low levels; the case
+is even worse when you realize the relevant 
+comparator isn't the Luxwolda adult levels but
+rather the Luxwolda pregnant levels. 
+
+## 5.2 Establishing Safety of Higher Doses
+
+**Slide 62**
+
+Testing safety at MUSC
+
+No adverse events.
+
+Need for IND filing points to further harms
+too low recommendations can have. 
+
+## 5.3 Relating Outcomes to Dose Level or Serum Level
+
+**Slide 63**
+
+Preterm Births by Dose
+
+You really can't see a trend looking at the 
+data this way. 
+
+**Slide 64**
+
+Serum Level by Dose
+
+While serum level does increase with increasing 
+dose, the scale of the increase is dwarfed by the 
+heterogeneity within dose groups. 
+
+If the real story is with serum level, focusing
+on dose groups will make the signal much harder
+to find. 
+
+**Slide 65**
+
+Gestation Time by Serum Level
+
+A trend is visible from this viewpoint. 
+
+There is a story. The size of the story really 
+does need larger cohorts to clarify it. 
+
+**Slide 66**
+
+Gestation Time by Serum Level Loess Curve
+
+We see significant improvement associated
+with getting levels above what the IOM recommends.
+
+**Slide 67**
+
+Preterm Hazard at MUSC
+
+The hazard drops as the serum level increases. 
+This is a setup for Bodnar et al. 
+
+## 5.4 Other Literature re Higher D Levels and Preterm Rates
+
+**Slide 68**
+
+Bodnar et al
+
+Preterm Hazard in Pittsburgh
+
+This one is key because the case-cohort nature 
+of the study let them include far more preterm
+births than were seen in the MUSC trial data,
+and it provides an independent line of support
+for the Wagner et al findings. 
+
+The larger number of cases also lets them show 
+there's improvement between 20 and 30 ng/mL; 
+Wagner et al focus on 20 vs 40
+
+**Slide 69**
+
+Qin et al Meta-Analysis
+
+The case is holding up across many studies. 
+
+It's real.
+
+**Slide 70**
+
+Summing Up
+
+real upside, little downside
+
+## 5.5 The Key Step - Action
+
+**Slide 71**
+
+What We're Doing
+
+emphasize taking action
+
+we know enough here. 
+
+We don't need more trials.
+
+Focus on serum level. 
+
+# 6. Stepping Back, and Other Lessons
+
+## 6.1 The Math Wasn't the Hard Part. Keeping Concepts Clear Was.
+
+**Slide 72**
+
+Other Takeaways
+
+I like Doonesbury...
+
+**Slide 73**
+
+Fixing the IOM recs
+
+Looking for feedback here. 
+
+**Slide 74**
+
+Acks
+

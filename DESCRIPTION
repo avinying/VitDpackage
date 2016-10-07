@@ -1,0 +1,13 @@
+Package: VitDpackage
+Type: Package
+Title: A package to store data and reports
+Version: 1.0
+Date: 2016-09-09
+Author: Ying Wang
+Maintainer: Ying Wang <ywang31@mdanderson.org>
+Description: To store the data and analysis reports Dr. Baggerly generated for his Vitmine D study.
+License: MIT + file LICENSE
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 5.0.1
